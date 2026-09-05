@@ -1,14 +1,14 @@
 """cyclone CLI 预编译二进制的下载定义。
 
 TODO(发布前填充)：
-1. 把 cyclone CLI 打成单文件二进制（PyInstaller / 将来的 C++ 内核静态链接版），
-   上传到 release 托管（GitHub Releases / 内网制品库，建议带鉴权——
-   这也是 license 控制的挂载点）；
-2. 填入真实 url 与 sha256；
-3. 需要 license 鉴权时改用 http_file 的 netrc 或自定义 repository_rule。
+1. 二进制由引擎仓库 packaging/build_binary.sh 产出（PyInstaller **onedir** +
+   tar.gz——不要用 onefile 单文件：macOS 对其每次启动重做安全评估，实测
+   52s/次；详见引擎仓库 packaging/README.md）；
+2. 填入真实 url 与 sha256，http_file 相应换成 http_archive（tar.gz 解开为
+   cyclone/ 目录，cli 指向 cyclone/cyclone，可执行位由 tar 保留）；
+3. 需要 license 鉴权时改用 netrc 或自定义 repository_rule。
 
-每个平台一个 http_file，文件名固定为 cyclone，可执行权限由
-toolchain 引用处的 executable=True 保证。
+当前为占位定义：URL/SHA-256 未填，工具链不会被解析，故不触发下载。
 """
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
