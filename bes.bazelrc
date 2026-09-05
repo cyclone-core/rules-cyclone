@@ -1,0 +1,21 @@
+# rules_cyclone 推荐 BES（Build Event Service）配置。
+# 用法：bazel test --config=bes //...
+# 接入：把两处 example.com 端点替换为你的 BES 后端（BuildBuddy / EngFlow /
+# 自建均可，规则包不绑定厂商），或在自己的 .bazelrc 里 try-import 本文件后覆盖。
+
+common:bes --bes_backend=grpcs://bes.example.com:443
+common:bes --bes_results_url=https://bes.example.com/invocation/
+
+# CI 推荐：等事件与证据传完再退出（避免上传失败静默丢证据）；
+# 本地开发可改 fully_async。
+common:bes --bes_upload_mode=wait_for_upload_complete
+
+# 证据文件（test.log / undeclared outputs 归档）可被 BES 后端取回的前提：
+# 不配缓存时 BEP 里的文件引用是执行机本地 file:// URI，服务端够不着；
+# 配远程缓存后变 bytestream://，证据链才可远程审计。按需启用：
+# common:bes --remote_cache=grpcs://cache.example.com:443
+
+# 注意（CI 脚本必看）：BES 上传失败时 Bazel 可能把进程退出码改写成
+# PERSISTENT_BUILD_EVENT_SERVICE_UPLOAD_ERROR，盖掉真实构建结果
+# （bazelbuild/bazel#25756）。判成败请解析 BEP 的 BuildFinished.exitCode，
+# 不要只看 bazel 进程退出码。

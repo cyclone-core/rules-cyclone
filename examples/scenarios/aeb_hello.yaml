@@ -1,0 +1,15 @@
+# 基线用例：无故障注入，全部断言应通过（绿灯）
+# objects:// 数据集缺失时按 seed 确定性生成 → 示例自包含、hermetic
+name: aeb_hello
+seed: 42
+duration_ms: 15000
+dataset: objects://data/aeb_approach.csv
+sut: inline:toy_perception
+
+faults: []
+
+metrics:
+  - { name: 近距召回率, metric: recall, bin: [0, 50], op: gte, value: 0.98 }
+  - { name: 中距召回率, metric: recall, bin: [50, 80], op: gte, value: 0.70 }
+  - { name: 远距召回率, metric: recall, bin: [80, 999999], op: gte, value: 0.20 }
+  - { name: 帧均误检, metric: fp_per_frame, op: lte, value: 0.05 }

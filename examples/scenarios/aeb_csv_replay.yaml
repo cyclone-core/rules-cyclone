@@ -1,0 +1,7 @@
+# 数据驱动用例：csv:// 相对路径回放——演示 cyclone_test 的 data attr
+# 把数据文件挂进 runfiles 并由 runner 链接进工作目录（相对路径 thus 可解析）
+name: aeb_csv_replay
+dataset: csv://clips/aeb_signals.csv
+sut: inline:simple_aeb_rule
+checks:
+  - { signal: "AEB_Request == 1", within: "1200ms after TTC < 1.5s" }

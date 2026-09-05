@@ -1,0 +1,14 @@
+"""examples：演示如何把 rules_cyclone 接入一个真实工程。
+
+本地开发时本模块即根模块，其 register_toolchains 优先于
+rules_cyclone 自带的（下载预编译二进制的）工具链——
+于是 examples 用 shim 工具链直接驱动本地 cyclone 源码。
+"""
+
+module(name = "rules_cyclone_examples", version = "0.0.0")
+
+bazel_dep(name = "rules_cyclone", version = "0.1.0")
+local_path_override(module_name = "rules_cyclone", path = "..")
+
+# 本地开发工具链（shim → python -m cyclone），优先级高于 rules_cyclone 默认工具链
+register_toolchains("//:local_cyclone_toolchain")

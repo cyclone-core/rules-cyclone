@@ -1,0 +1,25 @@
+"""rules_cyclone — Cyclone Core 的 Bazel 规则包。
+
+把确定性 XiL 测试变成 bazel test 的一等公民：
+一条 bazel_dep 接入，cyclone_test 与单元测试共用同一张构建图、
+同一个远程缓存、同一个 CI 看板。
+"""
+
+module(
+    name = "rules_cyclone",
+    version = "0.1.0",
+    compatibility_level = 1,
+)
+
+# 运行期无第三方依赖：规则只依赖 Bazel 原生能力（保持接入摩擦最小）
+
+# 工具链二进制下载（cyclone_repositories 在此声明各平台 CLI 仓库，惰性拉取）
+cyclone = use_extension("//tools:extensions.bzl", "cyclone")
+use_repo(cyclone, "cyclone_cli_linux_amd64", "cyclone_cli_linux_arm64", "cyclone_cli_darwin_arm64")
+
+# 注意：此处【不】默认 register_toolchains("//tools:all")——
+# 预编译二进制发布前 URL/SHA-256 仍是占位符，默认注册会让所有使用方
+# 在工具链解析时触发无效下载。
+# 使用方接入方式（发布 URL 填好后）：
+#   register_toolchains("@rules_cyclone//tools:all")
+# 本地开发则像 examples/ 一样注册自己的 shim/local 工具链。

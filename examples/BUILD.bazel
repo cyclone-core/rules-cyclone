@@ -1,0 +1,58 @@
+"""examples 构建定义：本地 shim 工具链 + 两个示例用例。
+
+验证方式（本机，需要 bazelisk）：
+    cd examples
+    bazel test --test_env=CYCLONE_MVP_HOME=/path/to/cyclone-mvp //...
+
+预期：
+    //:aeb_hello_test         PASS（基线绿灯，可反复命中缓存）
+    //:aeb_with_faults_test   FAIL（故障用例判定翻转——演示用，
+                              可用 bazel test --test_output=all 查看证据）
+"""
+
+load("@rules_cyclone//cyclone:defs.bzl", "cyclone_test", "cyclone_toolchain")
+
+package(default_visibility = ["//visibility:public"])
+
+# ------------------------------------------------------------ 本地开发工具链
+# genrule 复制 shim 并置执行位（源文件在某些挂载点上无法直接携带 +x）
+genrule(
+    name = "cyclone_shim",
+    srcs = ["cyclone_shim.sh"],
+    outs = ["cyclone_shim_gen.sh"],
+    cmd = "cp $< $@ && chmod +x $@",
+    executable = True,
+)
+
+cyclone_toolchain(
+    name = "cyclone_toolchain_local_impl",
+    cli = ":cyclone_shim",
+)
+
+toolchain(
+    name = "local_cyclone_toolchain",
+    toolchain_type = "@rules_cyclone//tools:toolchain_type",
+    toolchain = ":cyclone_toolchain_local_impl",
+)
+
+# ------------------------------------------------------------ 示例用例
+cyclone_test(
+    name = "aeb_hello_test",
+    scenario = "scenarios/aeb_hello.yaml",
+    size = "small",
+)
+
+cyclone_test(
+    name = "aeb_csv_replay_test",
+    scenario = "scenarios/aeb_csv_replay.yaml",
+    data = ["clips/aeb_signals.csv"],   # csv:// 相对路径 → runner 链接进工作目录
+    size = "small",
+)
+
+cyclone_test(
+    name = "aeb_with_faults_test",
+    scenario = "scenarios/aeb_with_faults.yaml",
+    size = "small",
+    # 演示判定翻转：预期 FAIL。真实工程中故障用例同样是 PASS/FAIL 由断言决定。
+    tags = ["manual"],
+)

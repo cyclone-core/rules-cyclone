@@ -1,0 +1,2 @@
+# 本机覆盖配置（绝对路径、个人环境）放 user.bazelrc，不入库。
+try-import %workspace%/user.bazelrc

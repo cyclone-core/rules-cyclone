@@ -1,0 +1,13 @@
+"""cyclone 工具链注册中心。"""
+
+load(":toolchain.bzl", "declare_cyclone_toolchains")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files(["toolchain.bzl"])
+
+toolchain_type(name = "toolchain_type")
+
+# 为 linux_amd64 / linux_arm64 / darwin_arm64 各声明一组
+# cyclone_toolchain + native.toolchain，供 register_toolchains("//tools:all") 使用
+declare_cyclone_toolchains()
