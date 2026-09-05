@@ -96,6 +96,24 @@ shim 用 `python3 -m cyclone` 驱动**一份独立的 cyclone 引擎源码检出
 `--test_env=PATH` 把引擎检出的 venv 排最前即可）。
 待预编译社区版 CLI 发布后，examples 将默认改用二进制工具链，无需引擎源码。
 
+## 缓存纪律：不需要 bazel clean
+
+Bazel 的设计前提是**增量永远正确**：每个 action 的输入都进哈希图，输入没变
+⇒ 输出复用。`(cached) PASSED` 是特性而非偷懒——日常反复 `bazel test` 即可，
+`bazel clean` 只会让你失去全部缓存收益。它仅有的正当用途：清磁盘空间、
+排查 Bazel 自身怪问题、换 Bazel 大版本。
+
+**一个例外——shim 开发流**：shim 经环境变量 `CYCLONE_MVP_HOME` 引入引擎源码，
+引擎代码不在哈希图里。改了引擎代码后直接重跑会得到 `(cached) PASSED`
+（新代码根本没执行）。此时用精准开关强制重跑，不要 clean：
+
+```bash
+bazel test --cache_test_results=no //:aeb_hello_test   # 构建缓存仍保留
+```
+
+预编译二进制工具链（`http_file` + SHA-256）接上后，引擎版本本身成为图节点，
+此坑自然消失。
+
 ## 发布前待办（骨架中标记 TODO 处）
 
 - [ ] cyclone CLI 打单文件二进制（PyInstaller；远期 C++ 内核静态链接版）
