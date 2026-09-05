@@ -2,8 +2,10 @@
 
 验证方式（本机，需要 bazelisk）：
     cd examples
-    bazel test //...          # 默认用 Release 预编译 CLI（首次会下载 ~33MB，
-                              # macOS 首跑有一次性安全评估 ~20s，之后命中缓存）
+    bazel test //...          # 默认用 Release 预编译 CLI（首次会下载 ~33MB；
+                              # macOS 全新机器首跑有一次性安全评估，实测可超
+                              # 60s——故用例设为 size=medium；评估只付一次，
+                              # 之后 ~21s/次，内容寻址缓存命中则更快）
 
 本地引擎开发（shim 驱动本机源码，不经 Release 二进制）：
     bazel test --extra_toolchains=//:local_cyclone_toolchain \
@@ -43,23 +45,25 @@ toolchain(
 )
 
 # ------------------------------------------------------------ 示例用例
+# size=medium（300s）：macOS 对首次落盘的 onedir 树做一次性安全评估，
+# 全新机器实测可能超过 small 的 60s（评估过后 ~21s/次，缓存命中更快）。
 cyclone_test(
     name = "aeb_hello_test",
     scenario = "scenarios/aeb_hello.yaml",
-    size = "small",
+    size = "medium",
 )
 
 cyclone_test(
     name = "aeb_csv_replay_test",
     scenario = "scenarios/aeb_csv_replay.yaml",
     data = ["clips/aeb_signals.csv"],   # csv:// 相对路径 → runner 链接进工作目录
-    size = "small",
+    size = "medium",
 )
 
 cyclone_test(
     name = "aeb_with_faults_test",
     scenario = "scenarios/aeb_with_faults.yaml",
-    size = "small",
+    size = "medium",
     # 演示判定翻转：预期 FAIL。真实工程中故障用例同样是 PASS/FAIL 由断言决定。
     tags = ["manual"],
 )

@@ -31,8 +31,8 @@ cyclone_test(
 ```
 
 然后 `bazel test //...` —— Cyclone 用例与单元测试共用构建图、远程缓存与 CI 看板。
-首次解析会下载预编译 CLI（~33MB）；macOS 首跑有一次性安全评估 ~20s，
-之后 ~0.3s，再之后命中内容寻址缓存。
+首次解析会下载预编译 CLI（~33MB）；macOS 全新机器对 onedir 树有一次性安全评估
+（实测可超 60s，故 examples 用例设 size=medium 兜底；评估只付一次，之后 ~0.3s）。
 
 ## 工作原理（三条 Bazel 测试契约）
 
@@ -97,7 +97,8 @@ examples/           可运行示例：默认用 Release 预编译 CLI；shim 工
 ```bash
 cd examples
 bazel test //...     # 默认走 Release 预编译 CLI：首次解析下载 ~33MB，
-                     # macOS 首跑一次性安全评估 ~20s，之后 ~0.3s
+                     # macOS 全新机器首跑有一次性安全评估（可超 60s，用例已设
+                     # size=medium 兜底）；评估只付一次，之后 ~0.3s
 ```
 
 本地引擎开发用 shim 工具链（`python3 -m cyclone` 驱动一份独立的引擎源码
@@ -138,8 +139,9 @@ SHA-256 钉死）下，引擎版本本身是图节点，换版本即换哈希，
       资产挂本仓 v0.1.0 Release，由引擎仓 CI（build-binary.yml）跨仓上传
 - [x] `tools/repositories.bzl`：真实 URL + 三平台 SHA-256 已按 Release sidecar
       钉死；MODULE.bazel 默认注册工具链（商业版二进制另行鉴权托管——license 挂载点）
-- [x] 已知事项文档化：首次运行下载的 onedir 树有一次性安全评估（macOS 实测首跑
-      ~20s，之后 ~0.3s）——`bazel test` 首跑超时属预期，重跑即过
+- [x] 已知事项文档化：首次运行下载的 onedir 树有一次性安全评估（macOS 全新机器
+      实测可超 60s，同机评估只付一次、之后 ~0.3s）——examples 用例设
+      size=medium（300s）兜底，首跑不再超时
 - [ ] hermetic 自查：CLI 执行不读系统时钟/环境/绝对路径（cached PASS 叙事的地基）
 - [ ] 涉及真实硬件的用例打 `tags = ["manual", "exclusive", "local", "no-cache"]`
       （`no-cache` 必须带：can:// 用例的 digest 含实测时序，即使本地缓存也是脏的）
