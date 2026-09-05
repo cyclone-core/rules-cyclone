@@ -1,0 +1,47 @@
+name: release-source
+
+# 打 tag 时把 git archive 源码包挂到本仓 Release。
+# 动机：BCR 不收 GitHub 自动归档 URL（2023 年官方重新生成导致哈希漂移），
+# 源码包字节必须由我们掌控、永久稳定。gzip -n 抹掉 gzip 头时间戳，
+# 同一提交重跑产物字节一致。同仓上传用默认 GITHUB_TOKEN，无需 PAT。
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "要为哪个 tag 补传源码包（如 v0.1.0）"
+        required: true
+        default: "v0.1.0"
+
+permissions:
+  contents: write
+
+jobs:
+  source-archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # git archive 需要拿到 tag 对象
+
+      - name: 生成源码包（确定性 tar + gzip -n）
+        run: |
+          TAG="${{ github.ref_name }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          fi
+          git fetch --tags --force
+          VER="${TAG#v}"
+          FILE="rules_cyclone-${VER}.tar.gz"
+          git archive --format=tar --prefix="rules_cyclone-${VER}/" "$TAG" | gzip -n > "$FILE"
+          sha256sum "$FILE" | tee "${FILE}.sha256"
+
+      - name: 挂到 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+          files: |
+            rules_cyclone-*.tar.gz
+            rules_cyclone-*.tar.gz.sha256
