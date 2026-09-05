@@ -8,7 +8,6 @@
 module(
     name = "rules_cyclone",
     version = "0.1.0",
-    compatibility_level = 1,
 )
 
 # 平台约束标签（@platforms//os:linux 等，tools/toolchain.bzl 的
@@ -19,9 +18,7 @@ bazel_dep(name = "platforms", version = "0.0.11")
 cyclone = use_extension("//tools:extensions.bzl", "cyclone")
 use_repo(cyclone, "cyclone_cli_linux_amd64", "cyclone_cli_linux_arm64", "cyclone_cli_darwin_arm64")
 
-# 注意：此处【不】默认 register_toolchains("//tools:all")——
-# 三平台 SHA-256 尚未回填（URL 已指向本仓 Release），默认注册会让使用方
-# 在工具链解析时触发校验失败的下载。
-# 使用方接入方式（SHA-256 填好后）：
-#   register_toolchains("@rules_cyclone//tools:all")
-# 本地开发则像 examples/ 一样注册自己的 shim/local 工具链。
+# 默认注册三平台 CLI 工具链：bzlmod 下依赖模块的 register_toolchains 对整张
+# 构建图生效，使用方一条 bazel_dep 即接入（首次解析按宿主平台惰性下载 CLI）。
+# 本地开发可像 examples/ 的 shim 流一样注册自己的工具链——根模块注册优先。
+register_toolchains("//tools:all")

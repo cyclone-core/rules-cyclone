@@ -2,15 +2,21 @@
 
 Cyclone Core 的 Bazel 规则包：把确定性 XiL 测试变成 `bazel test` 的一等公民。
 
-> **状态：pre-release（开发中）**。BCR 收录与预编译 CLI 发布在路线图上；
-> 当前 examples 需配合一份本地 cyclone 引擎检出运行（见「本地验证」节）。
+> **状态：v0.1.0 已发布**。`bazel_dep` + `git_override`（BCR 收录前）即接入；
+> 预编译 CLI 在首次工具链解析时按宿主平台自动下载，examples 开箱即跑。
 
 ## 给使用者的三行接入
 
 ```python
-# MODULE.bazel
+# MODULE.bazel（BCR 收录前用 git_override 指向 Release tag）
 bazel_dep(name = "rules_cyclone", version = "0.1.0")
-register_toolchains("@rules_cyclone//tools:all")   # 使用预编译 CLI（发布后）
+git_override(
+    module_name = "rules_cyclone",
+    remote = "https://github.com/cyclone-core/rules-cyclone.git",
+    tag = "v0.1.0",
+)
+# 无需 register_toolchains：rules_cyclone 已自注册，bzlmod 下
+# 依赖模块的工具链注册对整张构建图生效
 ```
 
 ```python
@@ -25,6 +31,8 @@ cyclone_test(
 ```
 
 然后 `bazel test //...` —— Cyclone 用例与单元测试共用构建图、远程缓存与 CI 看板。
+首次解析会下载预编译 CLI（~33MB）；macOS 首跑有一次性安全评估 ~20s，
+之后 ~0.3s，再之后命中内容寻址缓存。
 
 ## 工作原理（三条 Bazel 测试契约）
 
@@ -80,21 +88,30 @@ flaky 画像才真实。
 cyclone/            公共入口 defs.bzl 与规则实现
   private/          cyclone_test.bzl + runner.sh.tpl（不承诺稳定）
 tools/              工具链类型、预编译 CLI 下载（repositories.bzl）、bzlmod 扩展
-examples/           可运行示例：本地 shim 工具链驱动 cyclone 引擎源码（联调用）
+examples/           可运行示例：默认用 Release 预编译 CLI；shim 工具链
+                    （驱动本地引擎源码）为本地开发备选
 ```
 
-## 本地验证（shim 工具链，无需发布二进制）
+## 本地验证
 
 ```bash
 cd examples
-bazel test --test_env=CYCLONE_MVP_HOME=/path/to/cyclone-engine \
-    --test_env=PATH="/path/to/cyclone-engine/.venv/bin:$PATH" //:aeb_hello_test
+bazel test //...     # 默认走 Release 预编译 CLI：首次解析下载 ~33MB，
+                     # macOS 首跑一次性安全评估 ~20s，之后 ~0.3s
 ```
 
-shim 用 `python3 -m cyclone` 驱动**一份独立的 cyclone 引擎源码检出**（引擎仓库
-另行分发），需保证 `python3` 环境已装引擎的 `requirements.txt` 依赖（上方
-`--test_env=PATH` 把引擎检出的 venv 排最前即可）。
-待预编译社区版 CLI 发布后，examples 将默认改用二进制工具链，无需引擎源码。
+本地引擎开发用 shim 工具链（`python3 -m cyclone` 驱动一份独立的引擎源码
+检出，不经 Release 二进制；引擎仓库另行分发）：
+
+```bash
+bazel test --extra_toolchains=//:local_cyclone_toolchain \
+    --test_env=CYCLONE_MVP_HOME=/path/to/cyclone-engine \
+    --test_env=PATH="/path/to/cyclone-engine/.venv/bin:$PATH" //...
+```
+
+根模块的 `--extra_toolchains` 优先于 rules_cyclone 注册的默认工具链；
+需保证 `python3` 环境已装引擎的 `requirements.txt` 依赖。本机可把这几行
+固化进 gitignored 的 `user.bazelrc`（`.bazelrc` 已 try-import）。
 
 ## 缓存纪律：不需要 bazel clean
 
@@ -111,16 +128,17 @@ Bazel 的设计前提是**增量永远正确**：每个 action 的输入都进�
 bazel test --cache_test_results=no //:aeb_hello_test   # 构建缓存仍保留
 ```
 
-预编译二进制工具链（`http_file` + SHA-256）接上后，引擎版本本身成为图节点，
-此坑自然消失。
+此坑仅存在于 shim 开发流：默认的预编译二进制工具链（`http_archive` +
+SHA-256 钉死）下，引擎版本本身是图节点，换版本即换哈希，缓存语义自动正确。
 
-## 发布前待办（骨架中标记 TODO 处）
+## 发布待办（骨架中标记 TODO 处）
 
-- [ ] cyclone CLI 打单文件二进制（PyInstaller；远期 C++ 内核静态链接版）
-- [x] `tools/repositories.bzl`：真实下载 URL（本仓 Release）已填；**SHA-256 待**
-      引擎仓 CI（build-binary.yml）产出三平台 tar.gz 后回填，回填后即可在
-      MODULE.bazel 默认注册工具链（商业版二进制另行鉴权托管——license 挂载点）
-- [ ] 已知事项：首次运行下载的 onedir 树有一次性安全评估（macOS 实测首跑
+- [x] cyclone CLI 预编译二进制：PyInstaller onedir → tar.gz 三平台
+      （darwin-arm64 / linux-amd64 / linux-arm64；远期 C++ 内核静态链接版），
+      资产挂本仓 v0.1.0 Release，由引擎仓 CI（build-binary.yml）跨仓上传
+- [x] `tools/repositories.bzl`：真实 URL + 三平台 SHA-256 已按 Release sidecar
+      钉死；MODULE.bazel 默认注册工具链（商业版二进制另行鉴权托管——license 挂载点）
+- [x] 已知事项文档化：首次运行下载的 onedir 树有一次性安全评估（macOS 实测首跑
       ~20s，之后 ~0.3s）——`bazel test` 首跑超时属预期，重跑即过
 - [ ] hermetic 自查：CLI 执行不读系统时钟/环境/绝对路径（cached PASS 叙事的地基）
 - [ ] 涉及真实硬件的用例打 `tags = ["manual", "exclusive", "local", "no-cache"]`

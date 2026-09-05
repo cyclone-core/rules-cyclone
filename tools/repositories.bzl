@@ -5,8 +5,8 @@
 产物为 PyInstaller **onedir** 的 tar.gz（形态决策见引擎仓 packaging/README.md；
 勿改回 onefile：macOS 对其每次启动重做安全评估，实测 52s/次）。
 
-SHA-256 待回填：三平台产物由引擎仓 CI（build-binary.yml）产出后统一填入；
-填齐前 MODULE.bazel 不默认 register_toolchains，下载不会被触发。
+SHA-256 已按 v0.1.0 Release 的 .sha256 sidecar 固定；升级版本时
+同步更新 _CYCLONE_VERSION 与三个哈希（取自引擎仓 CI 产出的 sidecar）。
 """
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
@@ -18,11 +18,11 @@ _URL = "https://github.com/cyclone-core/rules-cyclone/releases/download/v{v}/cyc
 
 _PLATFORMS = ["linux_amd64", "linux_arm64", "darwin_arm64"]
 
-# TODO(release)：CI 产出三平台 tar.gz 后回填真实哈希
+# 取自 v0.1.0 Release 各 tar.gz 的 .sha256 sidecar（CI 产出，勿用本地构建值）
 _SHA256 = {
-    "linux_amd64": "0" * 64,
-    "linux_arm64": "0" * 64,
-    "darwin_arm64": "0" * 64,
+    "linux_amd64": "bd966eb84f831e97e6a56ee1f8e055822481bfac82b337b1de1a9508dcf20cf4",
+    "linux_arm64": "1ac1495688f222ea8d6855b3ace5400b83ef14088035a2a55628314f6367d09f",
+    "darwin_arm64": "2fd559f3b02daf12cce71d7b73a0f440165fee3a13194f997cef6e7b54766a86",
 }
 
 # tar.gz 解开为 cyclone/ 目录（可执行位由 tar 保留）：cli 文件 + 整树 filegroup

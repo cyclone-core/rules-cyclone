@@ -1,13 +1,20 @@
-"""examples 构建定义：本地 shim 工具链 + 两个示例用例。
+"""examples 构建定义：两个示例用例 + 本地开发用的 shim 工具链。
 
 验证方式（本机，需要 bazelisk）：
     cd examples
-    bazel test --test_env=CYCLONE_MVP_HOME=/path/to/cyclone-mvp //...
+    bazel test //...          # 默认用 Release 预编译 CLI（首次会下载 ~33MB，
+                              # macOS 首跑有一次性安全评估 ~20s，之后命中缓存）
+
+本地引擎开发（shim 驱动本机源码，不经 Release 二进制）：
+    bazel test --extra_toolchains=//:local_cyclone_toolchain \
+        --test_env=CYCLONE_MVP_HOME=/path/to/cyclone //...
 
 预期：
     //:aeb_hello_test         PASS（基线绿灯，可反复命中缓存）
-    //:aeb_with_faults_test   FAIL（故障用例判定翻转——演示用，
-                              可用 bazel test --test_output=all 查看证据）
+    //:aeb_csv_replay_test    PASS
+    //:aeb_with_faults_test   FAIL（故障用例判定翻转——演示用，manual 标签
+                              默认不跑，可 bazel test --test_output=all
+                              //:aeb_with_faults_test 查看证据）
 """
 
 load("@rules_cyclone//cyclone:defs.bzl", "cyclone_test", "cyclone_toolchain")
