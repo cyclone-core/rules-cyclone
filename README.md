@@ -117,7 +117,11 @@ bazel test --cache_test_results=no //:aeb_hello_test   # 构建缓存仍保留
 ## 发布前待办（骨架中标记 TODO 处）
 
 - [ ] cyclone CLI 打单文件二进制（PyInstaller；远期 C++ 内核静态链接版）
-- [ ] `tools/repositories.bzl`：填真实下载 URL 与 SHA-256（建议托管带鉴权——license 挂载点）
+- [x] `tools/repositories.bzl`：真实下载 URL（本仓 Release）已填；**SHA-256 待**
+      引擎仓 CI（build-binary.yml）产出三平台 tar.gz 后回填，回填后即可在
+      MODULE.bazel 默认注册工具链（商业版二进制另行鉴权托管——license 挂载点）
+- [ ] 已知事项：首次运行下载的 onedir 树有一次性安全评估（macOS 实测首跑
+      ~20s，之后 ~0.3s）——`bazel test` 首跑超时属预期，重跑即过
 - [ ] hermetic 自查：CLI 执行不读系统时钟/环境/绝对路径（cached PASS 叙事的地基）
 - [ ] 涉及真实硬件的用例打 `tags = ["manual", "exclusive", "local", "no-cache"]`
       （`no-cache` 必须带：can:// 用例的 digest 含实测时序，即使本地缓存也是脏的）

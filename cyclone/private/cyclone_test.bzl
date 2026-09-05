@@ -16,8 +16,12 @@ def _cyclone_test_impl(ctx):
 
     scenario = ctx.files.scenario[0]
 
-    # 运行期输入：CLI + 场景 + 回放数据（可选）
-    runfiles = ctx.runfiles(files = [cli, scenario] + ctx.files.data)
+    # 运行期输入：场景 + 回放数据（可选）+ 工具链全部文件
+    # （onedir 发行版的 _internal 依赖在 toolchain.files 里随行进 runfiles）
+    runfiles = ctx.runfiles(
+        files = [scenario] + ctx.files.data,
+        transitive_files = toolchain.files,
+    )
 
     # data 文件按 workspace 相对路径链接进 $WORK：csv:///mcap:// 等
     # 相对路径数据集在 runner 的 CWD 下即可解析（无 data 时展开为空行）

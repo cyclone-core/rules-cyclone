@@ -10,22 +10,34 @@
 CycloneInfo = provider(
     doc = "Cyclone Core CLI 的位置信息",
     fields = {
-        "cli": "File: cyclone 可执行文件（单文件二进制或 shim 脚本）",
+        "cli": "File: cyclone 可执行文件（onedir 内或 shim 脚本）",
+        "files": "depset[File]: 运行所需全部文件（onedir 发行版为整个解压树；shim 仅 cli 本身）",
     },
 )
 
 def _cyclone_toolchain_impl(ctx):
+    # shim 只有 cli；onedir 发行版 cli ∈ dist glob，depset 自动去重
+    files = depset([ctx.file.cli] + ctx.files.dist)
     return [platform_common.ToolchainInfo(
-        cyclone = CycloneInfo(cli = ctx.executable.cli),
+        cyclone = CycloneInfo(cli = ctx.file.cli, files = files),
     )]
 
 cyclone_toolchain = rule(
     implementation = _cyclone_toolchain_impl,
     attrs = {
+        # 注意不能用 executable=True：下载仓库里的文件是 source file，
+        # executable 属性只接受规则的 executable 输出。可执行位由
+        # http_archive 解 tar 保留（shim 侧由 examples 的 genrule 置位）。
         "cli": attr.label(
-            executable = True,
+            allow_single_file = True,
             cfg = "exec",
-            doc = "cyclone CLI 可执行目标（单文件二进制或 sh_binary 包装）",
+            mandatory = True,
+            doc = "cyclone CLI 可执行文件（onedir 树内或 shim 脚本）",
+        ),
+        "dist": attr.label_list(
+            allow_files = True,
+            cfg = "exec",
+            doc = "onedir 发行版的全部文件（_internal 等）；shim 留空",
         ),
     },
     doc = "声明某平台上的 cyclone CLI 工具链",
@@ -44,7 +56,9 @@ def declare_cyclone_toolchains():
     for name, constraints in PLATFORMS.items():
         cyclone_toolchain(
             name = "cyclone_toolchain_" + name,
-            cli = "@cyclone_cli_" + name + "//:cyclone",
+            # tar.gz 解开为 cyclone/ 目录：cli 是树内文件，dist 带整树
+            cli = "@cyclone_cli_" + name + "//:cyclone/cyclone",
+            dist = ["@cyclone_cli_" + name + "//:cyclone_dist"],
         )
         native.toolchain(
             name = "toolchain_" + name,

@@ -1,40 +1,47 @@
 """cyclone CLI 预编译二进制的下载定义。
 
-TODO(发布前填充)：
-1. 二进制由引擎仓库 packaging/build_binary.sh 产出（PyInstaller **onedir** +
-   tar.gz——不要用 onefile 单文件：macOS 对其每次启动重做安全评估，实测
-   52s/次；详见引擎仓库 packaging/README.md）；
-2. 填入真实 url 与 sha256，http_file 相应换成 http_archive（tar.gz 解开为
-   cyclone/ 目录，cli 指向 cyclone/cyclone，可执行位由 tar 保留）；
-3. 需要 license 鉴权时改用 netrc 或自定义 repository_rule。
+发布渠道：`cyclone-core/rules-cyclone` 的 GitHub Release——公开仓库的资产
+可匿名下载（社区版免费获客钩子的前提；商业版二进制另行鉴权托管）。
+产物为 PyInstaller **onedir** 的 tar.gz（形态决策见引擎仓 packaging/README.md；
+勿改回 onefile：macOS 对其每次启动重做安全评估，实测 52s/次）。
 
-当前为占位定义：URL/SHA-256 未填，工具链不会被解析，故不触发下载。
+SHA-256 待回填：三平台产物由引擎仓 CI（build-binary.yml）产出后统一填入；
+填齐前 MODULE.bazel 不默认 register_toolchains，下载不会被触发。
 """
 
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 _CYCLONE_VERSION = "0.1.0"
 
-# TODO: 替换为真实发布地址与哈希
-_URLS = {
-    "linux_amd64": "https://releases.example.com/cyclone/{v}/cyclone-linux-amd64".format(v = _CYCLONE_VERSION),
-    "linux_arm64": "https://releases.example.com/cyclone/{v}/cyclone-linux-arm64".format(v = _CYCLONE_VERSION),
-    "darwin_arm64": "https://releases.example.com/cyclone/{v}/cyclone-darwin-arm64".format(v = _CYCLONE_VERSION),
+# v0.1.0 Release 资产：cyclone-darwin-arm64.tar.gz / cyclone-linux-amd64.tar.gz / ...
+_URL = "https://github.com/cyclone-core/rules-cyclone/releases/download/v{v}/cyclone-{p}.tar.gz"
+
+_PLATFORMS = ["linux_amd64", "linux_arm64", "darwin_arm64"]
+
+# TODO(release)：CI 产出三平台 tar.gz 后回填真实哈希
+_SHA256 = {
+    "linux_amd64": "0" * 64,
+    "linux_arm64": "0" * 64,
+    "darwin_arm64": "0" * 64,
 }
 
-_SHA256 = {
-    "linux_amd64": "0" * 64,  # TODO
-    "linux_arm64": "0" * 64,  # TODO
-    "darwin_arm64": "0" * 64,  # TODO
-}
+# tar.gz 解开为 cyclone/ 目录（可执行位由 tar 保留）：cli 文件 + 整树 filegroup
+# （_internal 依赖必须随行进 runfiles，onedir 才能跑）
+_BUILD = """
+package(default_visibility = ["//visibility:public"])
+exports_files(["cyclone/cyclone"])
+filegroup(
+    name = "cyclone_dist",
+    srcs = glob(["cyclone/**"]),
+)
+"""
 
 def cyclone_repositories():
     """下载各平台 cyclone CLI（bzlmod 扩展中调用）。"""
-    for platform, url in _URLS.items():
-        http_file(
-            name = "cyclone_cli_" + platform,
-            url = url,
-            sha256 = _SHA256[platform],
-            executable = True,
-            downloaded_file_path = "cyclone",
+    for plat in _PLATFORMS:
+        http_archive(
+            name = "cyclone_cli_" + plat,
+            url = _URL.format(v = _CYCLONE_VERSION, p = plat.replace("_", "-")),
+            sha256 = _SHA256[plat],
+            build_file_content = _BUILD,
         )
