@@ -19,10 +19,11 @@ _URL = "https://github.com/cyclone-core/rules-cyclone/releases/download/v{v}/cyc
 _PLATFORMS = ["linux_amd64", "linux_arm64", "darwin_arm64"]
 
 # 取自 v0.1.0 Release 各 tar.gz 的 .sha256 sidecar（CI 产出，勿用本地构建值）
+# Linux 二进制以 ubuntu-22.04（glibc 2.35）为基线构建，可跑 22.04 及更新发行版
 _SHA256 = {
-    "linux_amd64": "bd966eb84f831e97e6a56ee1f8e055822481bfac82b337b1de1a9508dcf20cf4",
-    "linux_arm64": "1ac1495688f222ea8d6855b3ace5400b83ef14088035a2a55628314f6367d09f",
-    "darwin_arm64": "2fd559f3b02daf12cce71d7b73a0f440165fee3a13194f997cef6e7b54766a86",
+    "linux_amd64": "df256e1bbc74979ae036543c10aa95dabc2810edca2a7e9ce7c97b0b8af151ba",
+    "linux_arm64": "d9769ee2d5c9f512a5ddbf3dd51e84634d8ece8f387f9ce17579cc1a542f70ce",
+    "darwin_arm64": "243d3cfe146e3dd48b5ce3a6e4c7f12298e5fdf2e00d4481405c775d011afbf0",
 }
 
 # tar.gz 解开为 cyclone/ 目录（可执行位由 tar 保留）：cli 文件 + 整树 filegroup
