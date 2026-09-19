@@ -2,19 +2,15 @@
 
 Cyclone Core 的 Bazel 规则包：把确定性 XiL 测试变成 `bazel test` 的一等公民。
 
-> **状态：v0.1.0 已发布**。`bazel_dep` + `git_override`（BCR 收录前）即接入；
-> 预编译 CLI 在首次工具链解析时按宿主平台自动下载，examples 开箱即跑。
+> **状态：v0.1.0 已收录进 BCR**（[bazelbuild/bazel-central-registry#10406](https://github.com/bazelbuild/bazel-central-registry/pull/10406)）。
+> 一条 `bazel_dep` 即接入；预编译 CLI 在首次工具链解析时按宿主平台自动下载，
+> examples 开箱即跑。
 
 ## 给使用者的三行接入
 
 ```python
-# MODULE.bazel（BCR 收录前用 git_override 指向 Release tag）
+# MODULE.bazel
 bazel_dep(name = "rules_cyclone", version = "0.1.0")
-git_override(
-    module_name = "rules_cyclone",
-    remote = "https://github.com/cyclone-core/rules-cyclone.git",
-    tag = "v0.1.0",
-)
 # 无需 register_toolchains：rules_cyclone 已自注册，bzlmod 下
 # 依赖模块的工具链注册对整张构建图生效
 ```
@@ -145,7 +141,8 @@ SHA-256 钉死）下，引擎版本本身是图节点，换版本即换哈希，
 - [ ] hermetic 自查：CLI 执行不读系统时钟/环境/绝对路径（cached PASS 叙事的地基）
 - [ ] 涉及真实硬件的用例打 `tags = ["manual", "exclusive", "local", "no-cache"]`
       （`no-cache` 必须带：can:// 用例的 digest 含实测时序，即使本地缓存也是脏的）
-- [ ] 向 BCR（Bazel Central Registry）提 PR 或建私有 registry
+- [x] 向 BCR 提 PR 收录：[#10406](https://github.com/bazelbuild/bazel-central-registry/pull/10406)
+      已合并（v0.1.0 上线 bcr.bazel.build）；未来版本沿用同流程
 
 ## License
 
